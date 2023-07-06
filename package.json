@@ -1,0 +1,26 @@
+{
+  "name": "vapor-sdk",
+  "version": "0.0.1",
+  "description": "This is a wrapper SDK for making API requests to the Vapor API. It provides a simple interface for making HTTP requests with retry functionality and logging.",
+  "main": "index.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "author": "Vamsi Madduluri",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/vamsii777/vapor-sdk/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vamsii777/vapor-sdk.git"
+  },
+  "dependencies": {
+    "@lifeomic/attempt": "^3.0.3",
+    "axios": "^1.4.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.2",
+    "typescript": "^5.1.6"
+  }
+}
