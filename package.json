@@ -1,6 +1,6 @@
 {
   "name": "vapor-sdk",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "This is a wrapper SDK for making API requests to the Vapor API. It provides a simple interface for making HTTP requests with retry functionality and logging.",
   "main": "index.ts",
   "scripts": {
@@ -20,7 +20,7 @@
     "axios": "^1.4.0"
   },
   "devDependencies": {
-    "@types/jest": "^29.5.2",
+    "@types/jest": "^29.5.3",
     "typescript": "^5.1.6"
   }
 }

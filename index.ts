@@ -1,84 +1,137 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosProgressEvent } from 'axios';
 import { retry } from '@lifeomic/attempt';
 
 /**
  * Options for configuring the VaporWrapper instance.
  */
 interface VaporWrapperOptions {
-    /**
-     * The base URL for the API requests.
-     */
-    baseURL: string;
-    /**
-     * The maximum number of retries for failed requests.
-     * @default 3
-     */
-    maxRetries?: number;
-    /**
-     * The logger instance to use for logging.
-     * @default console
-     */
-    logger?: Console | null;
-    /**
-     * The authorization token to use for API requests.
-     * @default ''
-     */
-    token?: string;
+    baseURL: string; // The base URL for the API requests
+    maxRetries?: number; // The maximum number of retries for failed requests
+    logger?: Console | null; // The logger instance to use for logging
+    timeout?: number; // Request timeout in milliseconds
 }
 
 /**
- * A wrapper class for making API requests to the Vapor API.
+ * Options for making API requests.
+ */
+interface RouteOptions {
+    method: 'get' | 'post' | 'put' | 'delete'; // HTTP method
+    route: string; // API route
+    data?: any; // Request data
+    token?: string; // Optional JWT token for authentication
+    transformResponse?: (data: any) => any; // Optional response transformation function
+    onUploadProgress?: (progressEvent: AxiosProgressEvent) => void; // Optional upload progress callback
+    onDownloadProgress?: (progressEvent: AxiosProgressEvent) => void; // Optional download progress callback
+}
+
+/**
+ * Type definition for API response.
+ */
+interface ApiResponse<T> {
+    data: T; // Response data
+    status: number; // HTTP status code
+    headers: Record<string, string | string[]>; // Response headers
+}
+
+/**
+ * A wrapper class for making API requests with optional JWT authentication, response transformation, and enhanced logging.
  */
 class VaporWrapper {
     private client: AxiosInstance;
     private maxRetries: number;
     private logger: Console;
 
-    /**
-     * Creates a new instance of the VaporWrapper class.
-     * @param options The options for configuring the instance.
-     */
-    constructor({ baseURL, maxRetries = 3, logger = null, token = '' }: VaporWrapperOptions) {
+    constructor(options: VaporWrapperOptions) {
         this.client = axios.create({
-            baseURL: baseURL,
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
+            baseURL: options.baseURL,
+            timeout: options.timeout,
+            withCredentials: true, // Enable cookies for session handling
         });
-        this.maxRetries = maxRetries;
-        this.logger = logger ?? console;
+        this.maxRetries = options.maxRetries ?? 3;
+        this.logger = options.logger ?? console;
     }
 
     /**
-     * Makes an API request to the specified route using the specified method and data.
-     * @param method The HTTP method to use for the request.
-     * @param route The route to make the request to.
-     * @param data The data to send with the request.
-     * @returns The response data from the API.
-     * @throws An error if the request fails after the maximum number of retries.
+     * Session login method with dynamic route.
+     * @param route The login endpoint
+     * @param username The username for login
+     * @param password The password for login
+     * @returns The response data from the API
      */
-    async route(method: 'get' | 'post' | 'put' | 'delete', route: string, data = {}): Promise<any> {
-        try {
-            const response = await this.request({
-                method: method,
-                url: route,
-                data: data,
-            });
-            this.logger.log(`Request to ${route} succeeded`);
-            return response.data;
-        } catch (error) {
-            if (error instanceof Error) {
-                this.logger.error(`Request to ${route} failed: ${error.message}`);
-            } else {
-                this.logger.error(`Request to ${route} failed: ${error}`);
-            }
-            throw error;
-        }
-    }    
+    async login(route: string, username: string, password: string): Promise<ApiResponse<string>> {
+        return this.route({
+            method: 'post',
+            route: route,
+            data: { username, password },
+        });
+    }
 
     /**
-     * Makes an API request using the specified configuration object.
-     * @param config The configuration object for the request.
-     * @returns The response data from the API.
-     * @throws An error if the request fails after the maximum number of retries.
+     * Utility function to fetch data with dynamic route and optional JWT authentication.
+     * @param route The endpoint to fetch data from
+     * @param token Optional JWT token for authentication
+     * @param transformResponse Optional response transformation function
+     * @returns The response data from the API
+     */
+    async fetchData(route: string, token?: string, transformResponse?: (data: any) => any): Promise<ApiResponse<any>> {
+        return this.route({
+            method: 'get',
+            route: route,
+            token: token,
+            transformResponse: transformResponse,
+        });
+    }
+
+    /**
+     * Generic route method with optional JWT authentication and response transformation.
+     * @param options The options for making the API request
+     * @returns The response data from the API
+     */
+    async route(options: RouteOptions): Promise<ApiResponse<any>> {
+        try {
+            const config: AxiosRequestConfig = {
+                method: options.method,
+                url: options.route,
+                data: options.data,
+                onUploadProgress: options.onUploadProgress,
+                onDownloadProgress: options.onDownloadProgress,
+                transformResponse: options.transformResponse,
+            };
+
+            // Add JWT token authentication if provided
+            if (options.token) {
+                config.headers = { Authorization: `Bearer ${options.token}` };
+            }
+
+            const response = await this.request(config);
+            this.logger.log(`Request to ${options.route} succeeded`, {
+                url: options.route,
+                method: options.method,
+                headers: response.headers,
+                data: response.data,
+                status: response.status,
+                time: new Date().toISOString(),
+            });
+            return {
+                data: response.data,
+                status: response.status,
+                headers: response.headers as Record<string, string | string[]>,
+            };
+        } catch (error) {
+            this.logger.error(`Request to ${options.route} failed`, {
+                url: options.route,
+                method: options.method,
+                error: error,
+                time: new Date().toISOString(),
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Makes an API request using the specified configuration object with retry logic.
+     * @param config The configuration object for the request
+     * @returns The response data from the API
      */
     private async request(config: AxiosRequestConfig): Promise<AxiosResponse> {
         return retry(async () => {
