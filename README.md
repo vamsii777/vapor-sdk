@@ -1,83 +1,94 @@
 # Vapor SDK Wrapper
 
-This SDK provides a simplified, high-level interface to the Vapor 4 API. It abstracts away the details of the HTTP protocol and provides a JavaScript interface that's easy to use.
+Vapor SDK Wrapper is a flexible and robust library for interacting with APIs. It provides support for JWT authentication, dynamic routing, response transformation, enhanced logging, and more.
 
-While you could use an HTTP client library like Axios directly, there are several advantages to using this SDK:
+## Table of Contents
 
-- **Simplicity**: You don't need to know about HTTP methods or status codes. Just call a method on the SDK and get the data you need.
-
-- **Consistency**: The SDK ensures that every request to the API is made in a consistent way, with the same headers, error handling, etc. This makes your code more reliable and easier to debug.
-
-- **Centralized configuration**: Configure the base URL, authentication, and retry logic in one place, rather than for each request.
-
-- **Abstraction**: The SDK abstracts away the details of the API. If the API changes, you can update the SDK without changing the code that uses it.
-
-- **Custom logic**: The SDK can include custom logic specific to your application, like methods that combine multiple API requests or transform the data returned by the API.
+- [Installation](#installation)
+- [Features](#features)
+- [Usage](#usage)
+  - [Initialization](#initialization)
+  - [Session Login](#session-login)
+  - [Fetching Data](#fetching-data)
+  - [Custom Routes](#custom-routes)
+- [Examples](#examples)
+- [Changelog](#changelog)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Installation
+
+Install the package using NPM:
 
 ```bash
 npm install vapor-sdk
 ```
 
-## Instantiating VaporWrapper
-You can instantiate the `VaporWrapper` with a base URL, max retries, a logger and a token like so:
+## Features
+
+- **JWT Authentication**: Secure your API requests with JSON Web Token (JWT) authentication.
+- **Dynamic Routing**: Define endpoints dynamically based on your use cases.
+- **Response Transformation**: Handle common data manipulation tasks with built-in transformation functions.
+- **Enhanced Logging**: Get detailed insights into requests and responses, including headers, body, and timing information.
+- **Session Login**: Authenticate and manage sessions with a dedicated login method.
+
+## Usage
+
+### Initialization
+
+Create a new instance of VaporWrapper:
 
 ```typescript
-// Create a new instance of the VaporWrapper class with the required options
-const vapor = new VaporWrapper({
-    baseURL: 'https://api.vapor.com',
-    maxRetries: 5,
-    logger: console,
-    token: 'my-auth-token',
-});
-```
+import VaporWrapper from 'vapor-sdk';
 
-If you don't want to use any logger or don't have a token, you can pass null for the logger and omit the token:
-
-```typescript
 const vapor = new VaporWrapper({
     baseURL: 'https://api.example.com',
     maxRetries: 5,
-    logger: null
+    logger: console,
+    timeout: 1000,
 });
-
 ```
 
-## Using VaporWrapper.route
+### Session Login
 
-Once you have an instance of `VaporWrapper`, you can use the `.route()` method to send requests. The `.route()` method takes three arguments:
-
-1. The HTTP method as a string (`'get'`, `'post'`, `'put'`, or `'delete'`).
-2. The route to which to send the request.
-3. The data to send with the request (only necessary for `'post'` and `'put'` requests).
-
-For example, to send a `GET` request to the '/users' endpoint:
-const users = await vapor.route('get', '/users');
+Authenticate using the session login method:
 
 ```typescript
-vapor.route('get', '/users')
-    .then(response => {
-        console.log(response);
-    })
-    .catch(error => {
-        console.error(error);
-    });
+vapor.login('/login', 'username', 'password');
 ```
 
-To send a `POST` request to the '/users' endpoint:
+### Fetching Data
 
-```typescript 
-const data = {
-    name: 'John Doe',
-    email: 'john.doe@example.com'
-};
+Fetch data with optional JWT authentication and response transformation:
 
-vapor.route('post', '/users', data)
-    .then(response => {
-        console.log(response);
-    })
-    .catch(error => {
-        console.error(error);
-    });
+```typescript
+vapor.fetchData('/data', 'your-jwt-token', (data) => data.map(item => item.value));
 ```
+
+### Custom Routes
+
+Make custom API requests with optional JWT authentication:
+
+```typescript
+vapor.route({
+    method: 'get',
+    route: '/users',
+    token: 'your-jwt-token',
+});
+```
+
+## Examples
+
+See the [examples](./examples) directory for more detailed examples and use cases.
+
+## Changelog
+
+See the [changelog](./CHANGELOG.md) for a detailed history of changes and updates.
+
+## Contributing
+
+We welcome contributions! See the [contributing guide](./CONTRIBUTING.md) for details on how to contribute.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
